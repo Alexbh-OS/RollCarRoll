@@ -11,52 +11,65 @@ connectWithDb = sqlite3.connect('rollCarRoll.db')
 cursorDb = connectWithDb.cursor()
 
 while (flagWork):
+    listAttrTable = list()
+    listAttrName = list()
+
+    print(f"Введите названия файла json :")
     nameFileJson = input()
 
     BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
-    print(f"Base dir path: {BASE_DIR}")
+    filePathJson = BASE_DIR / "res" / "jsonForDb" / nameFileJson
+    print(f"Путь к файлу {filePathJson}")
 
-    file_path = BASE_DIR / "res" / "jsonForDb" / nameFileJson
-    print(f"File path {file_path}")
-
-    with open(file_path, 'r', encoding='UTF-8') as f:
+    with open(filePathJson , 'r', encoding='UTF-8') as f:
         data = json.load(f)
 
-    print(data)
+
+    print(f"Введите названия файла с параметрами таблицы :")
+    nameFileParam = input()
+    filePathParam = BASE_DIR / "res" / nameFileParam
+
+    with open(filePathParam, 'r', encoding='UTF-8') as f:
+        for line in f:
+            listAttrTable.append(line.strip())
+
     nameTable = input("Введите имя таблицы для создания/записи: ")
+
+    columns_sql = ",\n    ".join(listAttrTable)
 
     cursorDb.execute(f'''
     CREATE TABLE IF NOT EXISTS {nameTable} (
     id INTEGER PRIMARY KEY,
-    username TEXT NOT NULL,
-    email TEXT NOT NULL,
-    age INTEGER
+    {columns_sql}
     )
     ''')
 
     if isinstance(data, dict):
-        # Если в файле один объект, превращаем его в список из одного элемента
-        data = [data]
+        for key, list_data in data.items():
+            if key == nameTable:
+                print(list_data)
+                data = list_data
 
     if isinstance(data, list):
         for item in data:
             cursorDb.execute(
-                f"""  INSERT INTO {nameTable} (username, email, age)
-                            VALUES (?, ?, ?)  """,
+                f"""  INSERT INTO {nameTable} (firm,model,year,power,color,price)
+                            VALUES (?, ?, ?, ?, ?, ?)  """,
                 (
-                    item.get("username"),
-                    item.get("email"),
-                    item.get("age"),
+                    item.get("firm"),
+                    item.get("model"),
+                    item.get("year"),
+                    item.get("power"),
+                    item.get("color"),
+                    item.get("price"),
                 ),
             )
 
         connectWithDb.commit()
-        print(
-            f"Успешно загружено записей: {len(data)} в таблицу '{nameTable}'!"
-        )
+        print(f"Успешно загружено записей: {len(data)} в таблицу '{nameTable}'")
+        flagWork = False
     else:
         print("Ошибка: Неподдерживаемый формат JSON (должен быть список или объект)")
-
+        flagWork = False
 
 connectWithDb.close()
-
