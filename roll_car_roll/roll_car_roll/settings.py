@@ -37,7 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'storage',
+    'rest_framework',  # Добавляем DRF
+    'storage',         # Приложение для работы с моделями
+    'api',             # API сайта
 ]
 
 MIDDLEWARE = [
