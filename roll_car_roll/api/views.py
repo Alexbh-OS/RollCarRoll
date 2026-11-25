@@ -7,15 +7,21 @@ from rest_framework.response import Response
 from .serializers import CarSerializer, DealerSerializer
 from storage.models import Car, Dealer
 
+from .eventsender import event_sender
 
 """Получение всех записей таблице машин, добавление новой записи/ей в таблицу машин 
    !при добавлении нам не нужны параметры в URL-запросе """
-@api_view(['GET','POST'])
+
+
+@api_view(['GET', 'POST'])
 def get_cars(request):
-    if request.method == 'POST': # POST(CREATE) - Запрос на добавления записи/ей в БД
-        serializer = CarSerializer(data=request.data, many=True) # Пытаемся из исходного JSON сделать словарь сериализатором
-        if serializer.is_valid(): # Если валиден ,добавляем записи в БД
+    if request.method == 'POST':  # POST(CREATE) - Запрос на добавления записи/ей в БД
+        serializer = CarSerializer(data=request.data,
+                                   many=True)  # Пытаемся из исходного JSON сделать словарь сериализатором
+        if serializer.is_valid():  # Если валиден ,добавляем записи в БД
             serializer.save()
+
+            event_sender.send("CREATE", serializer.data) # Отправляем событие создания
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     # Если GET запрос,сначала получаем QuerySet из БД,
@@ -26,32 +32,39 @@ def get_cars(request):
 
 
 """Получение,изменение,замена,удаления конкретной записи в таблице машин"""
-@api_view(['GET','PATCH','DELETE','PUT'])
+
+
+@api_view(['GET', 'PATCH', 'PUT', 'DELETE'])
 def get_car_detail(request, pk):
     car = get_object_or_404(Car, pk=pk)
 
-    if request.method == 'PATCH' or request.method == 'PUT':
-        serializer = CarSerializer(car, data=request.data,partial=(request.method == 'PATCH'))
+    if request.method in ('PATCH', 'PUT'):
+        serializer = CarSerializer(car, data=request.data,
+                                   partial=(request.method == 'PATCH'))
         if serializer.is_valid():
             serializer.save()
+            event_sender.send("UPDATE", serializer.data)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'DELETE':
+        event_sender.send("DELETE", CarSerializer(car).data)
         car.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    serializer = CarSerializer(car)
-    return Response(serializer.data)
+    return Response(CarSerializer(car).data)
 
 
 """Получение всех записей таблице дилеров, добавление новой записи/ей  в таблицу дилеров
    !при добавлении нам не нужны параметры в URL-запросе """
-@api_view(['GET','POST'])
+
+
+@api_view(['GET', 'POST'])
 def get_dealers(request):
-    if request.method == 'POST': # POST(CREATE) - Запрос на добавления записи/ей в БД
-        serializer = DealerSerializer(data=request.data, many=True) # Пытаемся из исходного JSON сделать словарь сериализатором
-        if serializer.is_valid(): # Если валиден ,добавляем записи в БД
+    if request.method == 'POST':  # POST(CREATE) - Запрос на добавления записи/ей в БД
+        serializer = DealerSerializer(data=request.data,
+                                      many=True)  # Пытаемся из исходного JSON сделать словарь сериализатором
+        if serializer.is_valid():  # Если валиден ,добавляем записи в БД
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -63,7 +76,9 @@ def get_dealers(request):
 
 
 """Получение,изменение,замена,удаления конкретной записи в таблице диллеров"""
-@api_view(['GET','PATCH','DELETE','PUT'])
+
+
+@api_view(['GET', 'PATCH', 'DELETE', 'PUT'])
 def get_dealer_detail(request, pk):
     dealer = get_object_or_404(Dealer, pk=pk)
 
@@ -79,7 +94,8 @@ def get_dealer_detail(request, pk):
             )
 
     if request.method == 'PUT' or request.method == 'PATCH':
-        serializer = DealerSerializer(dealer, data=request.data,partial=(request.method == 'PATCH'))  # True для PATCH, False для PUT)
+        serializer = DealerSerializer(dealer, data=request.data,
+                                      partial=(request.method == 'PATCH'))  # True для PATCH, False для PUT)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -87,10 +103,6 @@ def get_dealer_detail(request, pk):
 
     serializer = DealerSerializer(dealer)
     return Response(serializer.data)
-
-
-
-
 
 
 """
