@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  # Твой Django проект
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app  # Синхронизация кода, чтобы работал автоперезапуск при изменениях
+    depends_on:
+      - rabbitmq # Запускать web только после того, как запустится RabbitMQ
+    environment:
+      - RABBITMQ_HOST=rabbitmq # Передаем имя хоста для подключения
+
+  # Брокер сообщений RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"   # Порт для подключения из кода
+      - "15672:15672" # Порт для веб-панели управления
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest

@@ -67,7 +67,6 @@ def get_dealers(request):
 def get_dealer_detail(request, pk):
     dealer = get_object_or_404(Dealer, pk=pk)
 
-    # DELETE: удаляем объект
     if request.method == 'DELETE':
         try:
             dealer.delete()
@@ -79,7 +78,6 @@ def get_dealer_detail(request, pk):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-    # PUT или PATCH: обновляем объект
     if request.method == 'PUT' or request.method == 'PATCH':
         serializer = DealerSerializer(dealer, data=request.data,partial=(request.method == 'PATCH'))  # True для PATCH, False для PUT)
         if serializer.is_valid():
